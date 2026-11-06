@@ -1,4 +1,4 @@
-name: Build Sultan Pharma Sovereign Release APK
+name: Build Sultan Pharma Sovereign Manual APK
 
 on:
   push:
@@ -27,39 +27,143 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Execute Proven Sovereign Build Pipeline
+      - name: Construct Pure Manual Android & Gradle Scaffolding
         run: |
-          # 1. التحقق من هيكل الأندرويد أو توليده نظيفاً
-          if [ ! -f "pubspec.yaml" ]; then
-            echo "Error: pubspec.yaml missing in root!"
-            exit 1
-          fi
+          echo "=== [Penalty Enforcement] Constructing Manual Android Scaffolding ==="
+          
+          # إنتاج المجلدات الأساسية يدوياً بالكامل
+          mkdir -p android/app/src/main/java/com/sultan/pharma/sultan_pharma_sovereign
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/gradle/wrapper
 
-          if [ ! -d "android" ]; then
-            flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
-          fi
+          # 1. كتابة ملف AndroidManifest.xml يدوياً
+          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.sultan.pharma.sultan_pharma_sovereign">
+              <application
+                  android:label="Sultan Pharma Sovereign"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2" />
+              </application>
+          </manifest>
+          EOF
 
-          # 2. ضمان وجود الـ namespace في ملف build.gradle
-          BUILD_GRADLE="android/app/build.gradle"
-          if [ -f "$BUILD_GRADLE" ]; then
-            if ! grep -q "namespace" "$BUILD_GRADLE"; then
-              sed -i 's/defaultConfig {/defaultConfig {\n        namespace "com.sultan.pharma.sultan_pharma_sovereign"/g' "$BUILD_GRADLE"
-            fi
-          fi
+          # 2. كتابة ملف build.gradle الخاص بالـ app يدوياً مع تحديد الـ namespace بدقة
+          cat << 'EOF' > android/app/build.gradle
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-gradle-plugin"
+          }
 
-          # 3. إعطاء أذونات التنفيذ لملف الـ gradlew لمنع مشاكل الأذونات
+          android {
+              namespace "com.sultan.pharma.sultan_pharma_sovereign"
+              compileSdkVersion flutter.compileSdkVersion
+              ndkVersion flutter.ndkVersion
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_7
+                  targetCompatibility JavaVersion.VERSION_1_7
+              }
+
+              kotlinOptions {
+                  jvmTarget = '1.7'
+              }
+
+              defaultConfig {
+                  applicationId "com.sultan.pharma.sultan_pharma_sovereign"
+                  minSdkVersion 21
+                  targetSdkVersion flutter.targetSdkVersion
+                  versionCode flutterVersionCode.toInteger()
+                  versionName flutterVersionName
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+
+          flutter {
+              source '../..'
+          }
+          EOF
+
+          # 3. كتابة ملف settings.gradle يدوياً
+          cat << 'EOF' > android/settings.gradle
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  def file = new File("local.properties")
+                  if (file.exists()) {
+                      properties.load(new FileInputStream(file))
+                  }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  if (flutterSdkPath == null) {
+                      flutterSdkPath = System.getenv("FLUTTER_ROOT")
+                  }
+                  return flutterSdkPath
+              }()
+
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          plugins {
+              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+              id "com.android.application" version "7.3.0" apply false
+              id "org.jetbrains.kotlin.android" version "1.8.0" apply false
+          }
+
+          include ":app"
+          EOF
+
+          # 4. كتابة ملف gradle-wrapper.properties يدوياً
+          cat << 'EOF' > android/gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+          networkTimeout=10000
+          validateDistributionUrl=true
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          # جلب ملف gradlew وتنفيذ الأذونات يدوياً
           cd android
+          gradle wrapper --gradle-version 8.5
           chmod +x gradlew
-          ./gradlew wrapper --gradle-version 8.5
           cd ..
 
-          # 4. جلب التبعيات وبناء حزمة APK (تم اعتماد وضع التشغيل المضمون لتجنب تعقيدات التوقيع السحابي)
+          # 5. بناء التطبيق يدوياً
           flutter pub get
           flutter build apk --debug --no-tree-shake-icons
 
-      - name: Upload Sovereign APK Artifact
+      - name: Upload Manual Sovereign APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Sultan-Pharma-Sovereign-Debug
+          name: Sultan-Pharma-Manual-Debug
           path: build/app/outputs/flutter-apk/app-debug.apk
           
