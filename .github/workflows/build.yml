@@ -27,25 +27,24 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Sovereign Flutter Shell
+      - name: Build via Isolated Sovereign Shell
         run: |
-          flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
-
-      - name: Upgrade Gradle Wrapper for Compatibility
-        run: |
-          cd android
-          ./gradlew wrapper --gradle-version 8.4
-          cd ..
-
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Build Release APK (Verbose Sovereign Mode)
-        run: flutter build apk --release --no-tree-shake-icons --verbose
+          # 1. إنشاء مشروع فلاتر نظيف ومعزول تماماً في مسار مؤقت
+          flutter create sovereign_build --org com.sultan.pharma --platforms=android
+          
+          # 2. حقق ملفاتك وخصائصك البرمجية إلى البيئة النظيفة
+          rm -rf sovereign_build/lib
+          cp -r lib sovereign_build/lib
+          cp pubspec.yaml sovereign_build/pubspec.yaml
+          
+          # 3. الانتقال إلى البيئة المعزولة وبناء حزمة الـ Release APK
+          cd sovereign_build
+          flutter pub get
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Sovereign APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Sultan-Pharma-Sovereign-Release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: sovereign_build/build/app/outputs/flutter-apk/app-release.apk
           
