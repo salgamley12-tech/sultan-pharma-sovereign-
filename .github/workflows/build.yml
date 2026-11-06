@@ -27,10 +27,15 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create Sovereign Flutter Shell (Fix Gradle Missing)
+      - name: Generate Sovereign Flutter Shell
         run: |
-          # الاحتفاظ بملف الـ main.yaml أو الـ lib والـ pubspec الموجودة وتفعيل الهيكل
           flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
+
+      - name: Upgrade Gradle Wrapper for Compatibility
+        run: |
+          cd android
+          ./gradlew wrapper --gradle-version 8.5
+          cd ..
 
       - name: Get Dependencies
         run: flutter pub get
