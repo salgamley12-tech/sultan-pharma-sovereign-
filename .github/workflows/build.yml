@@ -34,14 +34,14 @@ jobs:
       - name: Upgrade Gradle Wrapper for Compatibility
         run: |
           cd android
-          ./gradlew wrapper --gradle-version 8.5
+          ./gradlew wrapper --gradle-version 8.4
           cd ..
 
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+      - name: Build Release APK (Verbose Sovereign Mode)
+        run: flutter build apk --release --no-tree-shake-icons --verbose
 
       - name: Upload Sovereign APK Artifact
         uses: actions/upload-artifact@v4
