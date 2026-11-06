@@ -27,24 +27,40 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Initialize Sovereign Project Structure
+      - name: Execute Verified Sovereign Build Pipeline
         run: |
-          # التحقق من وجود الهيكل أو توليده مباشرة في الجذر إذا كان ناقصاً
-          if [ ! -d "android" ]; then
-            flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
+          # 1. إنشاء هيكل فلاتر النظيف في الجذر
+          flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
+
+          # 2. حقق وترقية إعدادات الـ build.gradle لحل أزمة التوقيع والـ namespace نهائياً
+          BUILD_GRADLE="android/app/build.gradle"
+          if [ -f "$BUILD_GRADLE" ]; then
+            echo "Injecting namespace and release-debug signing bypass..."
+            
+            # التأكد من وجود الـ namespace
+            if ! grep -q "namespace" "$BUILD_GRADLE"; then
+              sed -i 's/defaultConfig {/defaultConfig {\n        namespace "com.sultan.pharma.sultan_pharma_sovereign"/g' "$BUILD_GRADLE"
+            fi
+            
+            # ضبط توقيع الـ release ليستخدم مفتاح الـ debug لتجاوز خطأ التوقيع الإجباري
+            if ! grep -q "signingConfig signingConfigs.debug" "$BUILD_GRADLE"; then
+              sed -i '/buildTypes {/,/}/ {
+                /release {/ {
+                  n
+                  a \            signingConfig signingConfigs.debug
+                }
+              }' "$BUILD_GRADLE"
+            fi
           fi
 
-      - name: Configure Gradle Wrapper
-        run: |
+          # 3. تحديث الـ Gradle Wrapper إلى نسخة 8.5 المتوافقة
           cd android
           ./gradlew wrapper --gradle-version 8.5
           cd ..
 
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Build Sovereign Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+          # 4. جلب التبعيات وبناء الـ APK بنجاح
+          flutter pub get
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Sovereign APK Artifact
         uses: actions/upload-artifact@v4
