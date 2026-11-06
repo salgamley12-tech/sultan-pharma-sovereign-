@@ -27,40 +27,28 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Execute Sovereign Expert Build Pipeline
+      - name: Initialize Sovereign Project Structure
         run: |
-          # 1. إنشاء بيئة فلاتر معزولة ونظيفة تماماً
-          flutter create sovereign_build --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
-          
-          # 2. حقن الملفات البرمجية والتبعيات الخاصة بك
-          rm -rf sovereign_build/lib
-          cp -r lib sovereign_build/lib
-          cp pubspec.yaml sovereign_build/pubspec.yaml
-          
-          # 3. الانتقال للبيئة وضبط إعدادات الغريدل والـ Namespace تفادياً لأخطاء AGP 8
-          cd sovereign_build
-          
-          # حقن التعديلات الحتمية في ملف بناء الأندرويد لضمان استقرار الغريدل
-          BUILD_GRADLE="android/app/build.gradle"
-          if [ -f "$BUILD_GRADLE" ]; then
-            echo "Injecting namespace and sovereign signing config..."
-            # التأكد من وجود الـ namespace
-            sed -i 's/defaultConfig {/defaultConfig {\n        namespace "com.sultan.pharma.sultan_pharma_sovereign"/g' "$BUILD_GRADLE"
+          # التحقق من وجود الهيكل أو توليده مباشرة في الجذر إذا كان ناقصاً
+          if [ ! -d "android" ]; then
+            flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
           fi
 
-          flutter pub get
-          
-          # ترقية الغريدل للتوافق مع بيئة البناء الحديثة
+      - name: Configure Gradle Wrapper
+        run: |
           cd android
           ./gradlew wrapper --gradle-version 8.5
           cd ..
-          
-          # 4. بناء رزمة الـ APK مع تفعيل وضع التفصيل الكامل لضمان خلوه من الأخطاء
-          flutter build apk --release --no-tree-shake-icons --verbose
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Sovereign Release APK
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Sovereign APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Sultan-Pharma-Sovereign-Release
-          path: sovereign_build/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           
