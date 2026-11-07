@@ -1,4 +1,4 @@
-name: Build Sultan Pharma Pure Repository APK
+name: Build Sultan Pharma Final Sovereign APK
 
 on:
   push:
@@ -27,48 +27,46 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Build From Existing Repository Files Only
+      - name: Self-Contained Android Initialization & Build
         run: |
-          echo "=== [Sovereign Mode] Using existing repository structure exclusively ==="
+          echo "=== [Sovereign Final Mode] Ensuring complete Android scaffolding ==="
           
-          # التحقق من وجود ملف الـ pubspec.yaml في المستودع الفعلي
+          # التأكد من وجود ملف pubspec.yaml
           if [ ! -f "pubspec.yaml" ]; then
-            echo "Error: pubspec.yaml is missing from the repository root!"
+            echo "Error: pubspec.yaml is missing!"
             exit 1
           fi
 
-          # التحقق من وجود مجلد android مسبقاً وتعديله إن وجد، أو إيقاف العملية إذا تطلب الأمر
-          if [ -d "android" ]; then
-            echo "Android directory found in repository. Securing configurations..."
-            
-            # حقن الـ namespace آلياً إن لم يكن موجوداً في ملف build.gradle الفعلي
-            BUILD_GRADLE="android/app/build.gradle"
-            if [ -f "$BUILD_GRADLE" ]; then
-              if ! grep -q "namespace" "$BUILD_GRADLE"; then
-                echo "Injecting namespace into existing build.gradle..."
-                sed -i 's/defaultConfig {/defaultConfig {\n        namespace "com.sultan.pharma.sultan_pharma_sovereign"/g' "$BUILD_GRADLE"
-              fi
-            fi
-
-            # منح أذونات التنفيذ لملف الـ gradlew الموجود في المستودع
-            cd android
-            if [ -f "gradlew" ]; then
-              chmod +x gradlew
-            fi
-            ./gradlew wrapper --gradle-version 8.5
-            cd ..
-          else
-            echo "Error: The 'android' directory does not exist in the repository. Please ensure android scaffolding is tracked or committed."
-            exit 1
+          # إذا كان مجلد أندرويد غير موجود في المستودع، نقوم بتوليده آلياً وبشكل نظيف لضمان اكتمال البيئة
+          if [ ! -d "android" ]; then
+            echo "Android directory missing from repo. Generating clean scaffolding..."
+            flutter create . --org com.sultan.pharma --project-name sultan_pharma_sovereign --platforms=android
           fi
 
-          # جلب التبعيات وبناء الـ Debug APK حصرياً من الملفات الحالية
+          # ضبط ملف build.gradle وحقن الـ namespace بدقة مطلقة
+          BUILD_GRADLE="android/app/build.gradle"
+          if [ -f "$BUILD_GRADLE" ]; then
+            if ! grep -q "namespace" "$BUILD_GRADLE"; then
+              echo "Injecting namespace into build.gradle..."
+              sed -i 's/defaultConfig {/defaultConfig {\n        namespace "com.sultan.pharma.sultan_pharma_sovereign"/g' "$BUILD_GRADLE"
+            fi
+          fi
+
+          # ضبط أذونات وصيغة الـ Gradle Wrapper
+          cd android
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+          fi
+          ./gradlew wrapper --gradle-version 8.5
+          cd ..
+
+          # جلب التبعيات وبناء الـ Debug APK بطريقة مستقرة ومضمونة
           flutter pub get
           flutter build apk --debug --no-tree-shake-icons
 
-      - name: Upload Pure Repository APK Artifact
+      - name: Upload Final Sovereign APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Sultan-Pharma-Pure-Repo-Debug
+          name: Sultan-Pharma-Final-Debug
           path: build/app/outputs/flutter-apk/app-debug.apk
           
