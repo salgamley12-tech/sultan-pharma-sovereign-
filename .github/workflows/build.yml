@@ -70,3 +70,4 @@ jobs:
           name: Sultan-Pharma-Final-Debug
           path: build/app/outputs/flutter-apk/app-debug.apk
           
+
